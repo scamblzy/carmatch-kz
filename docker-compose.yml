@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: carmatch-postgres
+    environment:
+      POSTGRES_DB: carmatch
+      POSTGRES_USER: carmatch
+      POSTGRES_PASSWORD: carmatch_dev_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U carmatch -d carmatch"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
