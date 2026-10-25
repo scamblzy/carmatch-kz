@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
-
+from app.schemas.listing import CarListing, RecommendationRequest
+from app.services.recommendation import recommend_cars
 from app.main import app
 
 client = TestClient(app)
@@ -48,13 +49,12 @@ def test_recommendations_apply_filters():
 
     result = response.json()
 
-    assert result["total"] == 4
+    assert result["total"] == 3
 
     expected_ids = {
-        "demo-004",
-        "demo-006",
-        "demo-009",
-        "demo-010",
+    "demo-004",
+    "demo-009",
+    "demo-010",
     }
 
     actual_ids = {
@@ -174,3 +174,122 @@ def test_listings_filter_by_city_and_price():
         and item["price_kzt"] <= 6000000
         for item in data["items"]
     )
+
+
+def test_price_comparison_identifies_below_median_price():
+    cars = [
+        CarListing(
+            id="compare-001",
+            make="Toyota",
+            model="Corolla",
+            year=2018,
+            price_kzt=5_000_000,
+            mileage_km=100_000,
+            transmission="automatic",
+            body_type="sedan",
+            fuel_type="petrol",
+            city="Astana",
+            source_url="https://example.com/compare-001",
+            description="Synthetic test listing.",
+        ),
+        CarListing(
+            id="compare-002",
+            make="Toyota",
+            model="Corolla",
+            year=2017,
+            price_kzt=6_000_000,
+            mileage_km=120_000,
+            transmission="automatic",
+            body_type="sedan",
+            fuel_type="petrol",
+            city="Astana",
+            source_url="https://example.com/compare-002",
+            description="Synthetic test listing.",
+        ),
+        CarListing(
+            id="compare-003",
+            make="Toyota",
+            model="Corolla",
+            year=2018,
+            price_kzt=4_500_000,
+            mileage_km=90_000,
+            transmission="automatic",
+            body_type="sedan",
+            fuel_type="petrol",
+            city="Astana",
+            source_url="https://example.com/compare-003",
+            description="Synthetic test listing.",
+        ),
+    ]
+
+    request = RecommendationRequest(
+        budget_max=8_000_000,
+    )
+
+    result = recommend_cars(
+        request=request,
+        listings=cars,
+    )
+
+    target = next(
+        item
+        for item in result.items
+        if item.listing.id == "compare-003"
+    )
+
+    assert result.total == 3
+
+    assert any(
+        "минимум на 10%" in reason.lower()
+        for reason in target.reasons
+    )
+
+
+def test_price_comparison_reports_insufficient_data():
+    cars = [
+        CarListing(
+            id="limited-001",
+            make="Toyota",
+            model="Corolla",
+            year=2018,
+            price_kzt=5_000_000,
+            mileage_km=100_000,
+            transmission="automatic",
+            body_type="sedan",
+            fuel_type="petrol",
+            city="Astana",
+            source_url="https://example.com/limited-001",
+            description="Synthetic test listing.",
+        ),
+        CarListing(
+            id="limited-002",
+            make="Toyota",
+            model="Corolla",
+            year=2017,
+            price_kzt=6_000_000,
+            mileage_km=120_000,
+            transmission="automatic",
+            body_type="sedan",
+            fuel_type="petrol",
+            city="Astana",
+            source_url="https://example.com/limited-002",
+            description="Synthetic test listing.",
+        ),
+    ]
+
+    request = RecommendationRequest(
+        budget_max=8_000_000,
+    )
+
+    result = recommend_cars(
+        request=request,
+        listings=cars,
+    )
+
+    assert result.total == 2
+
+    for item in result.items:
+        assert any(
+            "недостаточно аналогов" in reason.lower()
+            for reason in item.reasons
+        )

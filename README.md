@@ -19,6 +19,8 @@ The application filters listings, ranks matching vehicles, and explains why each
 - Validate API requests using Pydantic.
 - Run automated backend tests with pytest.
 - Build the frontend for production.
+- Compare prices with similar listings when sufficient comparable data is available.
+- Report insufficient comparison data instead of making unsupported market-price claims.
 
 ## Tech Stack
 
