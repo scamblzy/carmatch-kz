@@ -69,11 +69,9 @@ The application currently uses synthetic listings through a development data pro
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/carmatch-kz.git
+git clone https://github.com/scamblzy/carmatch-kz.git
 cd carmatch-kz
 ```
-
-Replace `scamblzy` with your GitHub username.
 
 ### 2. Configure environment variables
 
