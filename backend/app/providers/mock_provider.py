@@ -1,3 +1,4 @@
+from app.providers.base import ListingProvider
 from app.schemas.listing import CarListing
 
 
@@ -173,6 +174,14 @@ _DEMO_LISTINGS = [
 ]
 
 
+class DemoListingProvider:
+    """Provide normalized synthetic listings for local development."""
+
+    def fetch_listings(self) -> list[CarListing]:
+        return list(_DEMO_LISTINGS)
+
+
 def get_demo_listings() -> list[CarListing]:
-    """Return the synthetic catalog for development and testing."""
-    return list(_DEMO_LISTINGS)
+    """Keep the small helper used by existing development workflows."""
+    provider: ListingProvider = DemoListingProvider()
+    return provider.fetch_listings()

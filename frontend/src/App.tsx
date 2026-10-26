@@ -7,6 +7,8 @@ const API_URL = (
 
 interface Car {
   id: string;
+  source: string;
+  source_listing_id: string | null;
   make: string;
   model: string;
   year: number;
@@ -18,6 +20,8 @@ interface Car {
   city: string;
   source_url: string;
   description: string;
+  published_at: string | null;
+  last_seen_at: string | null;
 }
 
 interface ScoreComponent {
@@ -26,12 +30,22 @@ interface ScoreComponent {
   score: number;
   weight: number;
   contribution: number;
+  available: boolean;
+}
+
+interface PriceComparison {
+  median_price_kzt: number | null;
+  difference_percent: number | null;
+  comparable_count: number;
+  scope: "city" | "country" | null;
 }
 
 interface Recommendation {
   listing: Car;
   score: number;
+  score_available: boolean;
   score_breakdown: ScoreComponent[];
+  price_comparison: PriceComparison;
   reasons: string[];
   warnings: string[];
 }
@@ -72,6 +86,9 @@ const currency = new Intl.NumberFormat("ru-RU", {
 });
 
 const numberFormat = new Intl.NumberFormat("ru-RU");
+const dateFormat = new Intl.DateTimeFormat("ru-RU", {
+  dateStyle: "medium",
+});
 
 const transmissionLabels: Record<string, string> = {
   automatic: "Автомат",
@@ -99,6 +116,20 @@ const fuelTypeLabels: Record<string, string> = {
 
 function formatPrice(value: number): string {
   return `${currency.format(value)} ₸`;
+}
+
+function formatListingFreshness(car: Car): string {
+  if (car.last_seen_at) {
+    return `Проверено ${dateFormat.format(new Date(car.last_seen_at))}`;
+  }
+
+  return "Актуальность не подтверждена";
+}
+
+function listingSourceLabel(source: string): string {
+  if (source === "demo") return "Демо-каталог";
+  if (source === "kolesa.kz") return "Kolesa.kz";
+  return source;
 }
 
 function transmissionLabel(value: string): string {
@@ -608,7 +639,7 @@ function App() {
                         </span>
 
                         <span className="score-pill">
-                          {item.score}/100
+                          {item.score_available ? `${item.score}/100` : "—"}
                         </span>
                       </div>
 
@@ -641,6 +672,16 @@ function App() {
 
                       <div className="car-price">
                         {formatPrice(car.price_kzt)}
+                      </div>
+
+                      <div className="listing-meta">
+                        <span>Источник: {listingSourceLabel(car.source)}</span>
+                        {car.published_at && (
+                          <span>
+                            Опубликовано {dateFormat.format(new Date(car.published_at))}
+                          </span>
+                        )}
+                        <span>{formatListingFreshness(car)}</span>
                       </div>
 
                       <div className="car-specs">
@@ -678,17 +719,49 @@ function App() {
                       <div className="score-description">
                         <div className="score-label">
                           <span>Соответствие запросу</span>
-                          <strong>{item.score}%</strong>
+                          <strong>
+                            {item.score_available
+                              ? `${item.score}/100`
+                              : "Недостаточно данных"}
+                          </strong>
                         </div>
 
-                        <div className="score-track">
-                          <div
-                            className="score-fill"
-                            style={{
-                              width: `${item.score}%`,
-                            }}
-                          />
-                        </div>
+                        {item.score_available && (
+                          <div className="score-track">
+                            <div
+                              className="score-fill"
+                              style={{
+                                width: `${item.score}%`,
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="price-comparison">
+                        <strong>Сравнение цены</strong>
+                        {item.price_comparison.median_price_kzt !== null ? (
+                          <>
+                            <p>
+                              Медиана аналогов: {formatPrice(
+                                item.price_comparison.median_price_kzt,
+                              )}
+                            </p>
+                            <span>
+                              {item.price_comparison.comparable_count} аналогов ·{" "}
+                              {item.price_comparison.scope === "city"
+                                ? "тот же город"
+                                : "по стране"}
+                              {item.price_comparison.difference_percent !== null &&
+                                ` · ${item.price_comparison.difference_percent > 0 ? "+" : ""}${item.price_comparison.difference_percent}% к медиане`}
+                            </span>
+                          </>
+                        ) : (
+                          <p>
+                            Найдено аналогов: {item.price_comparison.comparable_count}.
+                            {" "}Для сравнения нужно не менее 2.
+                          </p>
+                        )}
                       </div>
 
                       {/* Score breakdown */}
@@ -706,27 +779,35 @@ function App() {
                                 <span>{component.label}</span>
 
                                 <strong>
-                                  +{component.contribution.toFixed(1)}
+                                  {component.available
+                                    ? `+${component.contribution.toFixed(1)}`
+                                    : "нет данных"}
                                 </strong>
                               </div>
 
                               <div className="breakdown-track">
                                 <div
-                                  className="breakdown-fill"
+                                  className={`breakdown-fill${component.available ? "" : " is-unavailable"}`}
                                   style={{
-                                    width: `${component.score}%`,
+                                    width: component.available
+                                      ? `${component.score}%`
+                                      : "0%",
                                   }}
                                 />
                               </div>
 
                               <div className="breakdown-meta">
                                 <span>
-                                  Критерий: {component.score}/100
+                                  Критерий: {component.available
+                                    ? `${component.score}/100`
+                                    : "не учтён"}
                                 </span>
 
                                 <span>
                                   Вес:{" "}
-                                  {Math.round(component.weight * 100)}%
+                                  {component.available
+                                    ? `${Math.round(component.weight * 100)}%`
+                                    : "—"}
                                 </span>
                               </div>
                             </div>

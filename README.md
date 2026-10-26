@@ -58,6 +58,10 @@ The listing repository handles database queries. The recommendation engine appli
 
 The application currently uses synthetic listings through a development data provider. Real listing integration is planned separately, subject to permission and an agreed data access method.
 
+Listing sources implement a shared provider interface and return normalized `CarListing` records. Each record can retain its source name, source listing ID, publication time, and last-seen time. This keeps source-specific fields out of the recommendation engine and lets the interface show when listing freshness is unknown.
+
+The price component compares a listing against similar vehicles, preferring matches from the same city and falling back to the wider catalog. It is omitted from the score when fewer than two other comparable listings are available; the response reports the comparison count, median, and scope. Year and mileage influence the score only when the user sets those preferences.
+
 ## Requirements
 
 - Python 3.11 or newer
@@ -129,6 +133,8 @@ Interactive API documentation: `http://127.0.0.1:8000/docs`
 
 Health check: `http://127.0.0.1:8000/health`
 
+Readiness check including PostgreSQL: `http://127.0.0.1:8000/ready`
+
 ### 5. Start the frontend
 
 Open a second terminal from the project root:
@@ -146,6 +152,7 @@ Open `http://localhost:5173`.
 | Method | Endpoint | Description |
 |---|---|---|
 | GET | `/health` | Check API health |
+| GET | `/ready` | Check API and database readiness |
 | GET | `/api/v1/listings` | Search and paginate listings |
 | POST | `/api/v1/recommendations` | Filter and rank cars |
 | GET | `/docs` | Interactive Swagger documentation |
@@ -201,7 +208,7 @@ The generated production files are written to `frontend/dist`.
 - [x] React + TypeScript frontend
 - [x] Automated backend tests
 - [x] Initial production frontend build
-- [ ] GitHub Actions CI workflow
+- [x] GitHub Actions CI workflow
 - [ ] Deployment of a public demo
 - [ ] Official listing data integration, subject to authorization
 - [ ] Improved recommendation evaluation and user feedback

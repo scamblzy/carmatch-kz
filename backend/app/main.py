@@ -1,8 +1,12 @@
 import os
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
+from app.core.database import get_db
 from app.api.routes.recommendations import (
     router as recommendations_router,
 )
@@ -53,4 +57,22 @@ def health_check():
     return {
         "status": "ok",
         "service": "carmatch-kz-api",
+    }
+
+
+@app.get("/ready", tags=["Health"])
+def readiness_check(db: Session = Depends(get_db)):
+    """Confirm the API can reach its database and serve requests."""
+
+    try:
+        db.execute(text("SELECT 1"))
+    except SQLAlchemyError as error:
+        raise HTTPException(
+            status_code=503,
+            detail="Database is unavailable",
+        ) from error
+
+    return {
+        "status": "ready",
+        "database": "ok",
     }

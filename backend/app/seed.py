@@ -2,7 +2,7 @@ from sqlalchemy import select
 
 from app.core.database import SessionLocal
 from app.models import Listing
-from app.providers.mock_provider import get_demo_listings
+from app.providers.mock_provider import DemoListingProvider
 
 
 def seed_database() -> None:
@@ -20,7 +20,7 @@ def seed_database() -> None:
             )
             return
 
-        demo_cars = get_demo_listings()
+        demo_cars = DemoListingProvider().fetch_listings()
 
         database_listings = [
             Listing(**car.model_dump())

@@ -4,6 +4,7 @@ from sqlalchemy import (
     BigInteger,
     DateTime,
     Integer,
+    Index,
     String,
     Text,
     func,
@@ -17,10 +18,31 @@ class Listing(Base):
     """Database model for a car listing."""
 
     __tablename__ = "listings"
+    __table_args__ = (
+        Index(
+            "uq_listings_source_listing_id",
+            "source",
+            "source_listing_id",
+            unique=True,
+        ),
+    )
 
     id: Mapped[str] = mapped_column(
         String(80),
         primary_key=True,
+    )
+
+    source: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="demo",
+        server_default="demo",
+        index=True,
+    )
+
+    source_listing_id: Mapped[str | None] = mapped_column(
+        String(120),
+        nullable=True,
     )
 
     make: Mapped[str] = mapped_column(
@@ -82,6 +104,17 @@ class Listing(Base):
         Text,
         nullable=False,
         default="",
+    )
+
+    published_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    last_seen_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
     )
 
     updated_at: Mapped[datetime] = mapped_column(

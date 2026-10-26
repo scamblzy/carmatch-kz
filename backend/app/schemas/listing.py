@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -29,11 +30,13 @@ class CarListing(BaseModel):
     """Normalized car listing used inside the application."""
 
     model_config = ConfigDict(
-    str_strip_whitespace=True,
-    from_attributes=True,
-)
+        str_strip_whitespace=True,
+        from_attributes=True,
+    )
 
     id: str
+    source: str = Field(default="demo", min_length=1, max_length=50)
+    source_listing_id: str | None = Field(default=None, max_length=120)
     make: str
     model: str
     year: int = Field(ge=1980, le=2035)
@@ -45,6 +48,8 @@ class CarListing(BaseModel):
     city: str
     source_url: str
     description: str = ""
+    published_at: datetime | None = None
+    last_seen_at: datetime | None = None
 
 
 class RecommendationRequest(BaseModel):
@@ -112,13 +117,26 @@ class ScoreComponent(BaseModel):
     score: int = Field(ge=0, le=100)
     weight: float = Field(ge=0, le=1)
     contribution: float = Field(ge=0, le=100)
+    available: bool
+
+
+class PriceComparison(BaseModel):
+    """Market comparison context for the listing's current price."""
+
+    median_price_kzt: int | None = Field(default=None, gt=0)
+    difference_percent: float | None = None
+    comparable_count: int = Field(ge=0)
+    scope: Literal["city", "country"] | None = None
+
 
 class RecommendationItem(BaseModel):
     """A car and the explanation of its recommendation score."""
 
     listing: CarListing
     score: int = Field(ge=0, le=100)
+    score_available: bool
     score_breakdown: list[ScoreComponent]
+    price_comparison: PriceComparison
     reasons: list[str]
     warnings: list[str]
 
