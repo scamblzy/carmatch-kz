@@ -98,12 +98,27 @@ class RecommendationRequest(BaseModel):
 
         return self
 
+class ScoreComponent(BaseModel):
+    """One component of the recommendation score."""
+
+    key: Literal[
+        "price",
+        "year",
+        "mileage",
+        "preferred_make",
+    ]
+
+    label: str
+    score: int = Field(ge=0, le=100)
+    weight: float = Field(ge=0, le=1)
+    contribution: float = Field(ge=0, le=100)
 
 class RecommendationItem(BaseModel):
     """A car and the explanation of its recommendation score."""
 
     listing: CarListing
     score: int = Field(ge=0, le=100)
+    score_breakdown: list[ScoreComponent]
     reasons: list[str]
     warnings: list[str]
 

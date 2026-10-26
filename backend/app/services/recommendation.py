@@ -7,11 +7,11 @@ from app.schemas.listing import (
     RecommendationItem,
     RecommendationRequest,
     RecommendationResponse,
+    ScoreComponent,
 )
 
 
 def _clamp(value: float) -> float:
-    """Keep a score between 0 and 100."""
     return max(0.0, min(100.0, value))
 
 
@@ -19,7 +19,7 @@ def _matches_filters(
     car: CarListing,
     request: RecommendationRequest,
 ) -> bool:
-    """Apply mandatory filters before scoring."""
+    """Apply mandatory filters before ranking."""
 
     if car.price_kzt > request.budget_max:
         return False
@@ -30,16 +30,10 @@ def _matches_filters(
     ):
         return False
 
-    if (
-        request.year_min is not None
-        and car.year < request.year_min
-    ):
+    if request.year_min is not None and car.year < request.year_min:
         return False
 
-    if (
-        request.year_max is not None
-        and car.year > request.year_max
-    ):
+    if request.year_max is not None and car.year > request.year_max:
         return False
 
     if (
@@ -66,7 +60,7 @@ def _matches_filters(
     ):
         return False
 
-    # The selected city is a mandatory filter.
+    # A selected city is mandatory.
     if (
         request.city is not None
         and car.city.casefold() != request.city.casefold()
@@ -80,15 +74,9 @@ def _get_comparable_prices(
     car: CarListing,
     catalog: list[CarListing],
 ) -> list[int] | None:
-    """
-    Find comparable listings with the same make, model,
-    transmission and body type, within two model years.
+    """Find similar listings for an approximate price comparison."""
 
-    At least three listings, including the current car,
-    are required for a comparison.
-    """
-
-    comparable_prices = [
+    prices = [
         other.price_kzt
         for other in catalog
         if (
@@ -101,10 +89,11 @@ def _get_comparable_prices(
         )
     ]
 
-    if len(comparable_prices) < 3:
+    # Three or more listings are required, including the current car.
+    if len(prices) < 3:
         return None
 
-    return comparable_prices
+    return prices
 
 
 def _score_car(
@@ -112,11 +101,10 @@ def _score_car(
     request: RecommendationRequest,
     catalog: list[CarListing],
 ) -> RecommendationItem:
-    """Score a car and explain the recommendation."""
+    """Calculate the score and explain every weighted component."""
 
     current_year = date.today().year
 
-    # Compare asking prices only when enough similar listings exist.
     comparable_prices = _get_comparable_prices(car, catalog)
 
     if comparable_prices is not None:
@@ -126,38 +114,48 @@ def _score_car(
             car.price_kzt - median_price
         ) / median_price
 
-        # A lower price relative to comparable cars scores better.
         price_score = _clamp(
             70 - relative_difference * 200
         )
     else:
-        # Neutral price score: do not assume a cheaper car
-        # is a better deal without sufficient comparison data.
         median_price = None
         price_score = 60.0
 
-    # Newer cars receive a higher year score.
     year_range = max(current_year - 2000, 1)
 
     year_score = _clamp(
         (car.year - 2000) / year_range * 100
     )
 
-    # Lower mileage receives a higher score.
     mileage_score = _clamp(
         100 - car.mileage_km / 300_000 * 100
     )
 
-    # Base weights. They are normalized below.
+    # Each component contains:
+    # key, label, individual score, original weight.
     criteria = [
-        (price_score, 0.25),
-        (year_score, 0.35),
-        (mileage_score, 0.30),
+        (
+            "price",
+            "Цена относительно аналогов",
+            price_score,
+            0.25,
+        ),
+        (
+            "year",
+            "Год выпуска",
+            year_score,
+            0.35,
+        ),
+        (
+            "mileage",
+            "Пробег",
+            mileage_score,
+            0.30,
+        ),
     ]
 
     same_make = False
 
-    # Brand is a preference rather than a mandatory filter.
     if request.preferred_make:
         same_make = (
             car.make.casefold()
@@ -165,20 +163,45 @@ def _score_car(
         )
 
         criteria.append(
-            (100.0 if same_make else 0.0, 0.10)
+            (
+                "preferred_make",
+                "Совпадение марки",
+                100.0 if same_make else 0.0,
+                0.10,
+            )
         )
 
-    total_weight = sum(weight for _, weight in criteria)
+    total_weight = sum(
+        weight for _, _, _, weight in criteria
+    )
+
+    breakdown = []
+
+    for key, label, component_score, weight in criteria:
+        normalized_weight = weight / total_weight
+
+        breakdown.append(
+            ScoreComponent(
+                key=key,
+                label=label,
+                score=round(component_score),
+                weight=round(normalized_weight, 4),
+                contribution=round(
+                    component_score * normalized_weight,
+                    1,
+                ),
+            )
+        )
 
     score = round(
         sum(
-            value * weight
-            for value, weight in criteria
+            component_score * weight
+            for _, _, component_score, weight in criteria
         ) / total_weight
     )
 
     reasons = [
-        "Цена соответствует установленному бюджету.",
+        "Цена соответствует заданному бюджету.",
         "Год выпуска и пробег учтены в рейтинге.",
     ]
 
@@ -193,17 +216,17 @@ def _score_car(
             reasons.append(
                 "Цена не превышает медиану похожих объявлений."
             )
-        elif car.price_kzt <= median_price * 1.10:
-            reasons.append(
-                "Цена немного выше медианы похожих объявлений."
-            )
-        else:
+        elif car.price_kzt > median_price * 1.10:
             warnings.append(
                 "Цена более чем на 10% выше медианы похожих объявлений."
             )
+        else:
+            reasons.append(
+                "Цена немного выше медианы похожих объявлений."
+            )
     else:
         reasons.append(
-            "В каталоге недостаточно аналогов для сравнительной оценки цены."
+        "Недостаточно аналогов для сравнения цены."
         )
 
     if request.year_min is not None:
@@ -257,13 +280,14 @@ def _score_car(
         )
 
     warnings.append(
-        "Рейтинг показывает соответствие запросу, "
-        "а не подтверждённое техническое состояние автомобиля."
+        "Рейтинг отражает соответствие запросу, "
+        "а не подтверждённое техническое состояние."
     )
 
     return RecommendationItem(
         listing=car,
         score=score,
+        score_breakdown=breakdown,
         reasons=reasons,
         warnings=warnings,
     )

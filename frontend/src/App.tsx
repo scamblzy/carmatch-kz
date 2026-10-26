@@ -20,9 +20,18 @@ interface Car {
   description: string;
 }
 
+interface ScoreComponent {
+  key: "price" | "year" | "mileage" | "preferred_make";
+  label: string;
+  score: number;
+  weight: number;
+  contribution: number;
+}
+
 interface Recommendation {
   listing: Car;
   score: number;
+  score_breakdown: ScoreComponent[];
   reasons: string[];
   warnings: string[];
 }
@@ -64,31 +73,44 @@ const currency = new Intl.NumberFormat("ru-RU", {
 
 const numberFormat = new Intl.NumberFormat("ru-RU");
 
+const transmissionLabels: Record<string, string> = {
+  automatic: "Автомат",
+  manual: "Механика",
+};
+
+const bodyTypeLabels: Record<string, string> = {
+  sedan: "Седан",
+  hatchback: "Хэтчбек",
+  suv: "Внедорожник / SUV",
+  wagon: "Универсал",
+  coupe: "Купе",
+  minivan: "Минивэн",
+  other: "Другой",
+};
+
+const fuelTypeLabels: Record<string, string> = {
+  petrol: "Бензин",
+  diesel: "Дизель",
+  hybrid: "Гибрид",
+  electric: "Электро",
+  lpg: "Газ",
+  other: "Другое",
+};
+
 function formatPrice(value: number): string {
   return `${currency.format(value)} ₸`;
 }
 
 function transmissionLabel(value: string): string {
-  const labels: Record<string, string> = {
-    automatic: "Автомат",
-    manual: "Механика",
-  };
-
-  return labels[value] ?? value;
+  return transmissionLabels[value] ?? value;
 }
 
 function bodyTypeLabel(value: string): string {
-  const labels: Record<string, string> = {
-    sedan: "Седан",
-    hatchback: "Хэтчбек",
-    suv: "Внедорожник / SUV",
-    wagon: "Универсал",
-    coupe: "Купе",
-    minivan: "Минивэн",
-    other: "Другой",
-  };
+  return bodyTypeLabels[value] ?? value;
+}
 
-  return labels[value] ?? value;
+function fuelTypeLabel(value: string): string {
+  return fuelTypeLabels[value] ?? value;
 }
 
 function App() {
@@ -157,7 +179,9 @@ function App() {
           const numericValue = Number(value);
 
           if (!Number.isFinite(numericValue) || numericValue < 0) {
-            throw new Error(`Проверь значение поля ${field}.`);
+            throw new Error(
+              "Проверь числовые параметры поиска.",
+            );
           }
 
           payload[field] = numericValue;
@@ -216,12 +240,16 @@ function App() {
 
   return (
     <div className="app-shell">
+      {/* Header */}
+
       <header className="topbar">
-        <a className="brand" href="#">
+        <a className="brand" href="#" aria-label="CarMatch KZ">
           <span className="brand-icon">C</span>
+
           <span>
             car<span className="brand-accent">match</span>
           </span>
+
           <span className="brand-country">KZ</span>
         </a>
 
@@ -231,6 +259,8 @@ function App() {
       </header>
 
       <main>
+        {/* Hero */}
+
         <section className="hero">
           <div className="hero-copy">
             <div className="eyebrow">
@@ -254,79 +284,66 @@ function App() {
               <span>
                 <b>01</b> Под твой бюджет
               </span>
+
               <span>
                 <b>02</b> По твоим критериям
               </span>
+
               <span>
                 <b>03</b> С объяснением выбора
               </span>
             </div>
           </div>
 
-          <div className="hero-decoration" aria-hidden="true">
-            <div className="orbit orbit-one" />
-            <div className="orbit orbit-two" />
+          {/* Abstract design instead of car illustrations */}
 
-            <div className="hero-car">
-              <svg
-                viewBox="0 0 440 180"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M43 108 L65 99 L102 57 Q112 43 132 42 L266 42 Q291 43 309 65 L340 97 L383 108 Q397 112 397 129 L397 142 L28 142 L28 123 Q28 113 43 108Z"
-                  fill="#B4F36A"
-                />
-                <path
-                  d="M116 58 Q124 51 139 51 L194 51 L194 91 L88 91 L116 58Z"
-                  fill="#182321"
-                />
-                <path
-                  d="M206 51 L263 51 Q280 52 294 70 L311 91 L206 91Z"
-                  fill="#182321"
-                />
-                <path
-                  d="M200 48 L200 135"
-                  stroke="#314A39"
-                  strokeWidth="4"
-                />
-                <path
-                  d="M34 111 L73 105 L87 112 L87 125 L31 125Z"
-                  fill="#E8FCBD"
-                />
-                <path
-                  d="M343 104 L381 117 L386 128 L345 128Z"
-                  fill="#FF846A"
-                />
-                <rect
-                  x="57"
-                  y="137"
-                  width="72"
-                  height="34"
-                  rx="17"
-                  fill="#15241E"
-                />
-                <rect
-                  x="298"
-                  y="137"
-                  width="72"
-                  height="34"
-                  rx="17"
-                  fill="#15241E"
-                />
-                <circle cx="93" cy="154" r="11" fill="#718078" />
-                <circle cx="334" cy="154" r="11" fill="#718078" />
-                <circle cx="93" cy="154" r="5" fill="#D8E0D7" />
-                <circle cx="334" cy="154" r="5" fill="#D8E0D7" />
-              </svg>
+          <div className="hero-decoration" aria-hidden="true">
+            <div className="decoration-grid" />
+
+            <div className="hero-index">
+              <span className="hero-index-label">
+                CAR MATCHING SYSTEM
+              </span>
+
+              <strong>
+                01<span> / 03</span>
+              </strong>
+
+              <p>
+                Меньше шума.
+                <br />
+                Больше подходящих вариантов.
+              </p>
+            </div>
+
+            <div className="floating-score">
+              <div className="floating-score-head">
+                <span>SMART MATCH</span>
+                <span className="score-dot" />
+              </div>
+
+              <div className="floating-score-value">
+                92<span>/100</span>
+              </div>
+
+              <div className="mini-score-track">
+                <span />
+              </div>
+
+              <div className="floating-score-foot">
+                <span>Ваши критерии</span>
+                <strong>совпадают</strong>
+              </div>
             </div>
 
             <div className="decoration-caption">
-              <span>CARMATCH / 001</span>
+              <span>CARMATCH / KZ</span>
               <span>FIND YOUR MATCH</span>
             </div>
           </div>
         </section>
+
+        {/* Search form */}
 
         <section className="search-section">
           <div className="section-heading">
@@ -334,6 +351,7 @@ function App() {
               <span className="section-index">01 / ПАРАМЕТРЫ</span>
               <h2>Какую машину ищем?</h2>
             </div>
+
             <span className="optional-label">
               Настрой свой поиск
             </span>
@@ -344,14 +362,15 @@ function App() {
               <label htmlFor="budget_max">
                 Максимальный бюджет, ₸
               </label>
+
               <input
                 id="budget_max"
                 type="number"
                 min="1"
                 required
                 value={form.budget_max}
-                onChange={(e) =>
-                  updateField("budget_max", e.target.value)
+                onChange={(event) =>
+                  updateField("budget_max", event.target.value)
                 }
               />
             </div>
@@ -360,28 +379,30 @@ function App() {
               <label htmlFor="budget_min">
                 Минимальный бюджет, ₸
               </label>
+
               <input
                 id="budget_min"
                 type="number"
                 min="0"
                 value={form.budget_min}
                 placeholder="Неважно"
-                onChange={(e) =>
-                  updateField("budget_min", e.target.value)
+                onChange={(event) =>
+                  updateField("budget_min", event.target.value)
                 }
               />
             </div>
 
             <div className="field">
               <label htmlFor="preferred_make">Марка</label>
+
               <input
                 id="preferred_make"
                 type="text"
                 list="car-makes"
                 value={form.preferred_make}
                 placeholder="Например, Toyota"
-                onChange={(e) =>
-                  updateField("preferred_make", e.target.value)
+                onChange={(event) =>
+                  updateField("preferred_make", event.target.value)
                 }
               />
 
@@ -397,10 +418,13 @@ function App() {
 
             <div className="field">
               <label htmlFor="city">Город</label>
+
               <select
                 id="city"
                 value={form.city}
-                onChange={(e) => updateField("city", e.target.value)}
+                onChange={(event) =>
+                  updateField("city", event.target.value)
+                }
               >
                 <option value="">Любой город</option>
                 <option value="Astana">Астана</option>
@@ -410,20 +434,22 @@ function App() {
 
             <div className="field">
               <label htmlFor="year_min">Год выпуска от</label>
+
               <input
                 id="year_min"
                 type="number"
                 min="1980"
                 max="2035"
                 value={form.year_min}
-                onChange={(e) =>
-                  updateField("year_min", e.target.value)
+                onChange={(event) =>
+                  updateField("year_min", event.target.value)
                 }
               />
             </div>
 
             <div className="field">
               <label htmlFor="year_max">Год выпуска до</label>
+
               <input
                 id="year_max"
                 type="number"
@@ -431,33 +457,35 @@ function App() {
                 max="2035"
                 value={form.year_max}
                 placeholder="Неважно"
-                onChange={(e) =>
-                  updateField("year_max", e.target.value)
+                onChange={(event) =>
+                  updateField("year_max", event.target.value)
                 }
               />
             </div>
 
             <div className="field">
               <label htmlFor="mileage_max">Пробег до, км</label>
+
               <input
                 id="mileage_max"
                 type="number"
                 min="0"
                 value={form.mileage_max}
                 placeholder="Неважно"
-                onChange={(e) =>
-                  updateField("mileage_max", e.target.value)
+                onChange={(event) =>
+                  updateField("mileage_max", event.target.value)
                 }
               />
             </div>
 
             <div className="field">
-              <label htmlFor="transmission">Коробка</label>
+              <label htmlFor="transmission">Коробка передач</label>
+
               <select
                 id="transmission"
                 value={form.transmission}
-                onChange={(e) =>
-                  updateField("transmission", e.target.value)
+                onChange={(event) =>
+                  updateField("transmission", event.target.value)
                 }
               >
                 <option value="">Любая</option>
@@ -467,12 +495,13 @@ function App() {
             </div>
 
             <div className="field">
-              <label htmlFor="body_type">Кузов</label>
+              <label htmlFor="body_type">Тип кузова</label>
+
               <select
                 id="body_type"
                 value={form.body_type}
-                onChange={(e) =>
-                  updateField("body_type", e.target.value)
+                onChange={(event) =>
+                  updateField("body_type", event.target.value)
                 }
               >
                 <option value="">Любой</option>
@@ -487,12 +516,13 @@ function App() {
             </div>
 
             <div className="field">
-              <label htmlFor="fuel_type">Топливо</label>
+              <label htmlFor="fuel_type">Тип топлива</label>
+
               <select
                 id="fuel_type"
                 value={form.fuel_type}
-                onChange={(e) =>
-                  updateField("fuel_type", e.target.value)
+                onChange={(event) =>
+                  updateField("fuel_type", event.target.value)
                 }
               >
                 <option value="">Любое</option>
@@ -523,6 +553,8 @@ function App() {
           </form>
         </section>
 
+        {/* Error state */}
+
         {error && (
           <section className="error-panel" role="alert">
             <strong>Не удалось выполнить поиск</strong>
@@ -533,6 +565,8 @@ function App() {
             </p>
           </section>
         )}
+
+        {/* Results */}
 
         {total !== null && (
           <section className="results-section">
@@ -553,7 +587,9 @@ function App() {
             {results.length === 0 ? (
               <div className="empty-state">
                 <span className="empty-icon">⌕</span>
+
                 <h3>Пока ничего не нашли</h3>
+
                 <p>
                   Попробуй увеличить бюджет или изменить ограничения
                   по году и пробегу.
@@ -570,37 +606,36 @@ function App() {
                         <span className="car-number">
                           MATCH / {String(index + 1).padStart(2, "0")}
                         </span>
+
                         <span className="score-pill">
                           {item.score}/100
                         </span>
                       </div>
 
-                      <div className="car-symbol" aria-hidden="true">
-                        <span>CAR</span>
-                        <svg viewBox="0 0 120 44" fill="none">
-                          <path
-                            d="M10 27 L19 24 L30 11 Q33 8 39 8 H78 Q84 8 90 17 L98 25 L108 28 V35 H7 V30 Q7 28 10 27Z"
-                            fill="currentColor"
-                          />
-                          <path
-                            d="M36 12 H52 V23 H27 L36 12Z"
-                            fill="#273D30"
-                          />
-                          <path
-                            d="M57 12 H76 Q82 12 86 19 L89 23 H57Z"
-                            fill="#273D30"
-                          />
-                          <circle cx="27" cy="35" r="7" fill="#182321" />
-                          <circle cx="89" cy="35" r="7" fill="#182321" />
-                          <circle cx="27" cy="35" r="3" fill="#D6E1D4" />
-                          <circle cx="89" cy="35" r="3" fill="#D6E1D4" />
-                        </svg>
+                      {/* Minimal listing banner, no car pictures */}
+
+                      <div className="car-card-visual">
+                        <div className="car-visual-top">
+                          <span>CARMATCH / LISTING</span>
+                          <span>{car.year}</span>
+                        </div>
+
+                        <div className="car-visual-bottom">
+                          <span className="car-visual-type">
+                            {bodyTypeLabel(car.body_type)}
+                          </span>
+
+                          <span className="car-visual-city">
+                            {car.city}
+                          </span>
+                        </div>
                       </div>
 
                       <div className="car-title">
                         <h3>
                           {car.make} {car.model}
                         </h3>
+
                         <span>{car.year} год</span>
                       </div>
 
@@ -625,14 +660,20 @@ function App() {
 
                         <div>
                           <span>Кузов</span>
-                          <strong>{bodyTypeLabel(car.body_type)}</strong>
+                          <strong>
+                            {bodyTypeLabel(car.body_type)}
+                          </strong>
                         </div>
 
                         <div>
-                          <span>Город</span>
-                          <strong>{car.city}</strong>
+                          <span>Топливо</span>
+                          <strong>
+                            {fuelTypeLabel(car.fuel_type)}
+                          </strong>
                         </div>
                       </div>
+
+                      {/* Overall score */}
 
                       <div className="score-description">
                         <div className="score-label">
@@ -643,15 +684,62 @@ function App() {
                         <div className="score-track">
                           <div
                             className="score-fill"
-                            style={{ width: `${item.score}%` }}
+                            style={{
+                              width: `${item.score}%`,
+                            }}
                           />
                         </div>
                       </div>
 
+                      {/* Score breakdown */}
+
+                      {item.score_breakdown?.length > 0 && (
+                        <div className="score-breakdown">
+                          <h4>Из чего складывается оценка</h4>
+
+                          {item.score_breakdown.map((component) => (
+                            <div
+                              className="breakdown-row"
+                              key={component.key}
+                            >
+                              <div className="breakdown-info">
+                                <span>{component.label}</span>
+
+                                <strong>
+                                  +{component.contribution.toFixed(1)}
+                                </strong>
+                              </div>
+
+                              <div className="breakdown-track">
+                                <div
+                                  className="breakdown-fill"
+                                  style={{
+                                    width: `${component.score}%`,
+                                  }}
+                                />
+                              </div>
+
+                              <div className="breakdown-meta">
+                                <span>
+                                  Критерий: {component.score}/100
+                                </span>
+
+                                <span>
+                                  Вес:{" "}
+                                  {Math.round(component.weight * 100)}%
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Reasons */}
+
                       <div className="explanation">
                         <h4>Почему этот вариант?</h4>
 
-                        {item.reasons.slice(0, 3).map((reason) => (
+                        {item.reasons.slice(0, 4).map((reason) => (
                           <p key={reason}>
                             <span>+</span>
                             {reason}
@@ -659,11 +747,13 @@ function App() {
                         ))}
                       </div>
 
+                      {/* Warnings */}
+
                       {item.warnings.length > 0 && (
                         <div className="warnings">
                           <h4>Обрати внимание</h4>
 
-                          {item.warnings.slice(0, 2).map((warning) => (
+                          {item.warnings.slice(0, 3).map((warning) => (
                             <p key={warning}>
                               <span>!</span>
                               {warning}
@@ -689,10 +779,14 @@ function App() {
           </section>
         )}
 
+        {/* Demo notice */}
+
         <section className="demo-notice">
           <span className="demo-notice-icon">i</span>
+
           <div>
             <strong>Демонстрационная версия</strong>
+
             <p>
               Сейчас используются синтетические данные для тестирования.
               Это не реальные объявления Kolesa.kz, а ссылки в карточках —
@@ -702,12 +796,16 @@ function App() {
         </section>
       </main>
 
+      {/* Footer */}
+
       <footer className="footer">
         <a className="brand footer-brand" href="#">
           <span className="brand-icon">C</span>
+
           <span>
             car<span className="brand-accent">match</span>
           </span>
+
           <span className="brand-country">KZ</span>
         </a>
 
