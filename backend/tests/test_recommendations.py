@@ -293,3 +293,108 @@ def test_price_comparison_reports_insufficient_data():
             "недостаточно аналогов" in reason.lower()
             for reason in item.reasons
         )
+
+
+def _make_car(
+    identifier: str,
+    *,
+    city: str,
+    price_kzt: int,
+    year: int = 2018,
+    mileage_km: int = 100_000,
+) -> CarListing:
+    return CarListing(
+        id=identifier,
+        make="Toyota",
+        model="Corolla",
+        year=year,
+        price_kzt=price_kzt,
+        mileage_km=mileage_km,
+        transmission="automatic",
+        body_type="sedan",
+        fuel_type="petrol",
+        city=city,
+        source_url=f"https://example.com/{identifier}",
+    )
+
+
+def test_price_comparison_excludes_listing_and_prefers_city_sample():
+    cars = [
+        _make_car("city-target", city="Astana", price_kzt=5_000_000),
+        _make_car("city-peer-1", city="Astana", price_kzt=4_500_000),
+        _make_car("city-peer-2", city="Astana", price_kzt=5_500_000),
+        _make_car("national-peer", city="Almaty", price_kzt=1_000_000),
+    ]
+
+    result = recommend_cars(
+        request=RecommendationRequest(budget_max=8_000_000),
+        listings=cars,
+    )
+
+    target = next(
+        item for item in result.items if item.listing.id == "city-target"
+    )
+
+    assert target.price_comparison.comparable_count == 2
+    assert target.price_comparison.scope == "city"
+    assert target.price_comparison.median_price_kzt == 5_000_000
+    assert target.price_comparison.difference_percent == 0
+
+
+def test_price_comparison_falls_back_to_country_sample():
+    cars = [
+        _make_car("fallback-target", city="Astana", price_kzt=5_000_000),
+        _make_car("fallback-local", city="Astana", price_kzt=4_500_000),
+        _make_car("fallback-national", city="Almaty", price_kzt=5_500_000),
+    ]
+
+    result = recommend_cars(
+        request=RecommendationRequest(budget_max=8_000_000),
+        listings=cars,
+    )
+
+    target = next(
+        item for item in result.items if item.listing.id == "fallback-target"
+    )
+
+    assert target.price_comparison.comparable_count == 2
+    assert target.price_comparison.scope == "country"
+    assert target.price_comparison.median_price_kzt == 5_000_000
+
+
+def test_score_is_unavailable_without_selected_preferences_or_analogs():
+    result = recommend_cars(
+        request=RecommendationRequest(budget_max=8_000_000),
+        listings=[
+            _make_car("unranked", city="Astana", price_kzt=5_000_000),
+        ],
+    )
+
+    item = result.items[0]
+
+    assert item.score_available is False
+    assert item.score == 0
+    assert item.score_breakdown[0].available is False
+    assert item.score_breakdown[0].weight == 0
+
+
+def test_year_and_mileage_only_score_when_requested():
+    car = _make_car("selected-criteria", city="Astana", price_kzt=5_000_000)
+    result = recommend_cars(
+        request=RecommendationRequest(
+            budget_max=8_000_000,
+            year_min=2015,
+            mileage_max=200_000,
+        ),
+        listings=[car],
+    )
+
+    item = result.items[0]
+    components = {component.key: component for component in item.score_breakdown}
+
+    assert item.score_available is True
+    assert components["price"].available is False
+    assert components["year"].available is True
+    assert components["mileage"].available is True
+    assert components["year"].weight == 0.5
+    assert components["mileage"].weight == 0.5
