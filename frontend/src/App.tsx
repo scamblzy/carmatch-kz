@@ -1,9 +1,10 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import "./App.css";
 
 const API_URL = (
   import.meta.env.VITE_API_URL || "http://127.0.0.1:8000"
 ).replace(/\/$/, "");
+const FAVORITES_STORAGE_KEY = "carmatch:favorites:v1";
 
 interface Car {
   id: string;
@@ -126,6 +127,21 @@ function formatListingFreshness(car: Car): string {
   return "Актуальность не подтверждена";
 }
 
+function getFavoriteKey(item: Recommendation): string {
+  return `${item.listing.source}:${item.listing.id}`;
+}
+
+function loadFavorites(): Recommendation[] {
+  try {
+    const saved = localStorage.getItem(FAVORITES_STORAGE_KEY);
+    const parsed: unknown = saved ? JSON.parse(saved) : [];
+
+    return Array.isArray(parsed) ? parsed as Recommendation[] : [];
+  } catch {
+    return [];
+  }
+}
+
 function listingSourceLabel(source: string): string {
   if (source === "demo") return "Демо-каталог";
   if (source === "kolesa.kz") return "Kolesa.kz";
@@ -150,6 +166,28 @@ function App() {
   const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [favorites, setFavorites] = useState<Recommendation[]>(loadFavorites);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
+    } catch {
+      // Keep the current session usable if browser storage is unavailable.
+    }
+  }, [favorites]);
+
+  const visibleItems = showFavoritesOnly ? favorites : results;
+
+  function toggleFavorite(item: Recommendation) {
+    const favoriteKey = getFavoriteKey(item);
+
+    setFavorites((previous) =>
+      previous.some((favorite) => getFavoriteKey(favorite) === favoriteKey)
+        ? previous.filter((favorite) => getFavoriteKey(favorite) !== favoriteKey)
+        : [item, ...previous],
+    );
+  }
 
   function updateField(field: keyof SearchForm, value: string) {
     setForm((previous) => ({
@@ -284,9 +322,22 @@ function App() {
           <span className="brand-country">KZ</span>
         </a>
 
-        <span className="topbar-label">
-          ПОМОЩНИК В ПОКУПКЕ АВТО
-        </span>
+        <div className="topbar-actions">
+          <span className="topbar-label">
+            ПОМОЩНИК В ПОКУПКЕ АВТО
+          </span>
+          <button
+            className={`favorites-nav${showFavoritesOnly ? " is-active" : ""}`}
+            type="button"
+            aria-pressed={showFavoritesOnly}
+            aria-label={showFavoritesOnly ? "Вернуться к результатам поиска" : `Открыть избранное, ${favorites.length}`}
+            onClick={() => setShowFavoritesOnly((value) => !value)}
+          >
+            <span aria-hidden="true">♥</span>
+            {showFavoritesOnly ? "К результатам" : "Избранное"}
+            <strong>{favorites.length}</strong>
+          </button>
+        </div>
       </header>
 
       <main>
@@ -599,48 +650,77 @@ function App() {
 
         {/* Results */}
 
-        {total !== null && (
+        {(total !== null || showFavoritesOnly) && (
           <section className="results-section">
             <div className="section-heading results-heading">
               <div>
                 <span className="section-index">
-                  02 / РЕЗУЛЬТАТЫ
+                  {showFavoritesOnly ? "02 / ИЗБРАННОЕ" : "02 / РЕЗУЛЬТАТЫ"}
                 </span>
-                <h2>Твои варианты</h2>
+                <h2>
+                  {showFavoritesOnly ? "Сохранённые автомобили" : "Твои варианты"}
+                </h2>
               </div>
 
               <div className="results-count">
-                <strong>{total}</strong>
-                <span>подходящих авто</span>
+                <strong>{showFavoritesOnly ? favorites.length : total}</strong>
+                <span>
+                  {showFavoritesOnly ? "в избранном" : "подходящих авто"}
+                </span>
               </div>
             </div>
 
-            {results.length === 0 ? (
+            {visibleItems.length === 0 ? (
               <div className="empty-state">
-                <span className="empty-icon">⌕</span>
+                <span className="empty-icon">{showFavoritesOnly ? "♡" : "⌕"}</span>
 
-                <h3>Пока ничего не нашли</h3>
+                <h3>
+                  {showFavoritesOnly
+                    ? "Пока нет сохранённых авто"
+                    : "Пока ничего не нашли"}
+                </h3>
 
                 <p>
-                  Попробуй увеличить бюджет или изменить ограничения
-                  по году и пробегу.
+                  {showFavoritesOnly
+                    ? "Добавляй понравившиеся варианты в избранное — они останутся здесь после нового поиска."
+                    : "Попробуй увеличить бюджет или изменить ограничения по году и пробегу."}
                 </p>
               </div>
             ) : (
               <div className="car-grid">
-                {results.map((item, index) => {
+                {visibleItems.map((item, index) => {
                   const car = item.listing;
+                  const isFavorite = favorites.some(
+                    (favorite) => getFavoriteKey(favorite) === getFavoriteKey(item),
+                  );
 
                   return (
-                    <article className="car-card" key={car.id}>
+                    <article className="car-card" key={getFavoriteKey(item)}>
                       <div className="car-card-top">
                         <span className="car-number">
-                          MATCH / {String(index + 1).padStart(2, "0")}
+                          {showFavoritesOnly ? "SAVED" : "MATCH"} /{" "}
+                          {String(index + 1).padStart(2, "0")}
                         </span>
 
-                        <span className="score-pill">
-                          {item.score_available ? `${item.score}/100` : "—"}
-                        </span>
+                        <div className="car-card-actions">
+                          <button
+                            className={`favorite-button${isFavorite ? " is-saved" : ""}`}
+                            type="button"
+                            aria-label={
+                              isFavorite
+                                ? "Убрать из избранного"
+                                : "Добавить в избранное"
+                            }
+                            aria-pressed={isFavorite}
+                            onClick={() => toggleFavorite(item)}
+                          >
+                            <span aria-hidden="true">{isFavorite ? "♥" : "♡"}</span>
+                            {isFavorite ? "В избранном" : "В избранное"}
+                          </button>
+                          <span className="score-pill">
+                            {item.score_available ? `${item.score}/100` : "—"}
+                          </span>
+                        </div>
                       </div>
 
                       {/* Minimal listing banner, no car pictures */}

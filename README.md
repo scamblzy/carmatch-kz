@@ -12,6 +12,7 @@ The application filters listings, ranks matching vehicles, and explains why each
 ## Features
 
 - Search cars by budget, year, mileage, transmission, body type, fuel type, brand, and city.
+- Save interesting listings to browser-based favorites that remain available after a new search or browser restart.
 - Rank matching cars using a weighted scoring algorithm.
 - Explain recommendation scores with reasons and warnings.
 - Filter, sort, and paginate the listing catalog.

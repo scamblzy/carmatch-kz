@@ -139,6 +139,55 @@ main,
   color: var(--muted);
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.favorites-nav,
+.favorite-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.favorites-nav {
+  min-height: 39px;
+  padding: 0 12px;
+}
+
+.favorites-nav > span,
+.favorite-button > span {
+  color: #a24f44;
+  font-size: 14px;
+}
+
+.favorites-nav strong {
+  min-width: 21px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  background: var(--surface-soft);
+  color: var(--green);
+  font-size: 10px;
+}
+
+.favorites-nav:hover,
+.favorite-button:hover,
+.favorites-nav.is-active {
+  border-color: #b8d39f;
+  background: #f3f8ed;
+}
+
 /* HERO */
 
 .hero {
@@ -603,6 +652,28 @@ main,
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+.car-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.favorite-button {
+  min-height: 30px;
+  padding: 0 8px;
+  font-size: 10px;
+}
+
+.favorite-button.is-saved {
+  border-color: #e5c6c0;
+  background: #fff5f3;
+  color: #8d4338;
+}
+
+.favorite-button.is-saved > span {
+  color: #bd5547;
 }
 
 .car-number {
@@ -1109,11 +1180,18 @@ main,
   }
 
   .topbar-label {
-    max-width: 140px;
-    text-align: right;
-    line-height: 1.6;
-    font-size: 8px;
-    letter-spacing: 1px;
+    display: none;
+  }
+
+  .topbar-actions {
+    gap: 0;
+  }
+
+  .favorites-nav {
+    min-height: 36px;
+    gap: 6px;
+    padding: 0 9px;
+    font-size: 11px;
   }
 
   .brand {
@@ -1247,6 +1325,13 @@ main,
 
   .car-card {
     padding: 17px;
+  }
+
+  .favorite-button {
+    min-height: 29px;
+    gap: 5px;
+    padding: 0 6px;
+    font-size: 9px;
   }
 
   .car-card-visual {
