@@ -1,0 +1,65 @@
+[
+  {
+    "file": "images/audi-a4-sedan.jpg",
+    "make_model": "Audi A4",
+    "body_type": "sedan",
+    "visible_damage": [],
+    "source": "https://commons.wikimedia.org/wiki/File:Audi_A4_sedan.jpg",
+    "license": "Public domain (per Wikimedia Commons file page)",
+    "author": "IFCAR"
+  },
+  {
+    "file": "images/bmw-sedan.jpg",
+    "make_model": "BMW (model unknown)",
+    "body_type": "sedan",
+    "visible_damage": [],
+    "source": "https://commons.wikimedia.org/wiki/File:BMWcar.jpg",
+    "license": "CC0 1.0",
+    "author": "Jackson2161"
+  },
+  {
+    "file": "images/burned-car.jpg",
+    "make_model": "unknown",
+    "body_type": "unknown",
+    "visible_damage": ["fire_damage", "severe_damage"],
+    "source": "https://commons.wikimedia.org/wiki/File:Burned_out_car.jpg",
+    "license": "CC0 1.0",
+    "author": "Alexandr.guz"
+  },
+  {
+    "file": "images/crashed-car.jpg",
+    "make_model": "unknown",
+    "body_type": "unknown",
+    "visible_damage": ["collision_damage", "severe_damage"],
+    "source": "https://commons.wikimedia.org/wiki/File:Car_crash_2.jpg",
+    "license": "Public domain (per Wikimedia Commons file page)",
+    "author": "Dori"
+  },
+  {
+    "file": "images/dr5-suv.jpg",
+    "make_model": "DR5",
+    "body_type": "SUV",
+    "visible_damage": [],
+    "source": "https://commons.wikimedia.org/wiki/File:DR5_Suv_frontale.jpg",
+    "license": "Public domain (per Wikimedia Commons file page)",
+    "author": "Corvettec6r"
+  },
+  {
+    "file": "images/hail-damaged-car.jpg",
+    "make_model": "unknown",
+    "body_type": "unknown",
+    "visible_damage": ["hail_damage", "broken_glass"],
+    "source": "https://commons.wikimedia.org/wiki/File:Hail_damage_car.jpg",
+    "license": "CC0 1.0",
+    "author": "Simiprof"
+  },
+  {
+    "file": "images/vw-polo-sedan.jpg",
+    "make_model": "Volkswagen Polo",
+    "body_type": "sedan",
+    "visible_damage": [],
+    "source": "https://commons.wikimedia.org/wiki/File:VW_Polo_Sedan.jpg",
+    "license": "Public domain (per Wikimedia Commons file page)",
+    "author": "Antonio Saraiva"
+  }
+]
