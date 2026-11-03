@@ -21,6 +21,7 @@ interface Car {
   city: string;
   source_url: string;
   description: string;
+  photo_urls?: string[];
   published_at: string | null;
   last_seen_at: string | null;
 }
@@ -49,6 +50,7 @@ interface Recommendation {
   price_comparison: PriceComparison;
   reasons: string[];
   warnings: string[];
+  description_flags?: string[];
 }
 
 interface RecommendationResponse {
@@ -66,6 +68,7 @@ interface SearchForm {
   body_type: string;
   fuel_type: string;
   preferred_make: string;
+  model_name: string;
   city: string;
 }
 
@@ -79,6 +82,7 @@ const initialForm: SearchForm = {
   body_type: "sedan",
   fuel_type: "petrol",
   preferred_make: "",
+  model_name: "",
   city: "Astana",
 };
 
@@ -262,6 +266,7 @@ function App() {
         "body_type",
         "fuel_type",
         "preferred_make",
+        "model_name",
         "city",
       ] as const;
 
@@ -515,6 +520,29 @@ function App() {
             </div>
 
             <div className="field">
+              <label htmlFor="model_name">Модель</label>
+
+              <input
+                id="model_name"
+                type="text"
+                list="car-models"
+                value={form.model_name}
+                placeholder="Например, Camry"
+                onChange={(event) =>
+                  updateField("model_name", event.target.value)
+                }
+              />
+
+              <datalist id="car-models">
+                <option value="Camry" />
+                <option value="Corolla" />
+                <option value="Accent" />
+                <option value="Rio" />
+                <option value="Cobalt" />
+              </datalist>
+            </div>
+
+            <div className="field">
               <label htmlFor="year_min">Год выпуска от</label>
 
               <input
@@ -690,6 +718,8 @@ function App() {
               <div className="car-grid">
                 {visibleItems.map((item, index) => {
                   const car = item.listing;
+                  const photoUrls = car.photo_urls ?? [];
+                  const descriptionFlags = item.description_flags ?? [];
                   const isFavorite = favorites.some(
                     (favorite) => getFavoriteKey(favorite) === getFavoriteKey(item),
                   );
@@ -725,7 +755,22 @@ function App() {
 
                       {/* Minimal listing banner, no car pictures */}
 
-                      <div className="car-card-visual">
+                      <div
+                        className={`car-card-visual${photoUrls.length ? " has-photos" : ""}`}
+                      >
+                        {photoUrls.length > 0 && (
+                          <div className="car-photo-gallery">
+                            {photoUrls.slice(0, 3).map((photoUrl, photoIndex) => (
+                              <img
+                                className="car-photo"
+                                key={photoUrl}
+                                src={photoUrl}
+                                alt={`${car.make} ${car.model}, фото ${photoIndex + 1}`}
+                                loading="lazy"
+                              />
+                            ))}
+                          </div>
+                        )}
                         <div className="car-visual-top">
                           <span>CARMATCH / LISTING</span>
                           <span>{car.year}</span>
@@ -843,6 +888,21 @@ function App() {
                           </p>
                         )}
                       </div>
+
+                      {descriptionFlags.length > 0 && (
+                        <div className="description-flags">
+                          <h4>Сигналы в описании продавца</h4>
+                          {descriptionFlags.map((flag) => (
+                            <p key={flag}>
+                              <span aria-hidden="true">!</span>
+                              {flag}
+                            </p>
+                          ))}
+                          <small>
+                            Автоматические подсказки по тексту, а не подтверждённая история автомобиля.
+                          </small>
+                        </div>
+                      )}
 
                       {/* Score breakdown */}
 

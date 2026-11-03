@@ -13,6 +13,8 @@ The application filters listings, ranks matching vehicles, and explains why each
 
 - Search cars by budget, year, mileage, transmission, body type, fuel type, brand, and city.
 - Save interesting listings to browser-based favorites that remain available after a new search or browser restart.
+- Filter recommendations by an exact model and display listing photos when the provider supplies them.
+- Surface explicit phrases in seller descriptions that mention damage, repairs, document issues, or taxi use.
 - Rank matching cars using a weighted scoring algorithm.
 - Explain recommendation scores with reasons and warnings.
 - Filter, sort, and paginate the listing catalog.
@@ -60,6 +62,8 @@ The listing repository handles database queries. The recommendation engine appli
 The application currently uses synthetic listings through a development data provider. Real listing integration is planned separately, subject to permission and an agreed data access method.
 
 Listing sources implement a shared provider interface and return normalized `CarListing` records. Each record can retain its source name, source listing ID, publication time, and last-seen time. This keeps source-specific fields out of the recommendation engine and lets the interface show when listing freshness is unknown.
+
+Normalized listings can also include up to 30 photo URLs. The current description checks are phrase-based signals from the seller's text, not a visual inspection or a verified vehicle history. Vision-model analysis will be connected after an approved model provider and authorized listing-photo source are configured.
 
 The price component compares a listing against similar vehicles, preferring matches from the same city and falling back to the wider catalog. It is omitted from the score when fewer than two other comparable listings are available; the response reports the comparison count, median, and scope. Year and mileage influence the score only when the user sets those preferences.
 
@@ -197,6 +201,7 @@ The generated production files are written to `frontend/dist`.
 - The current catalog contains synthetic demonstration listings.
 - `example.com` links are placeholders, not real car advertisements.
 - Recommendation scores indicate preference matching, not a verified assessment of vehicle condition.
+- The current version does not perform AI analysis of listing photos; description signals are limited to explicit phrases in seller-provided text.
 - No official Kolesa.kz data integration is currently available in this MVP.
 - Real listing access will be implemented only through an approved and documented integration.
 
@@ -212,6 +217,7 @@ The generated production files are written to `frontend/dist`.
 - [x] GitHub Actions CI workflow
 - [ ] Deployment of a public demo
 - [ ] Official listing data integration, subject to authorization
+- [ ] Vision-model analysis of listing photos and richer listing-text analysis
 - [ ] Improved recommendation evaluation and user feedback
 
 ## Disclaimer

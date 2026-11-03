@@ -29,6 +29,10 @@ def test_listings_endpoint_returns_demo_cars():
         "id" in car
         for car in data["items"]
     )
+    assert all(
+        isinstance(car["photo_urls"], list)
+        for car in data["items"]
+    )
 
 
 def test_recommendations_apply_filters():
@@ -302,11 +306,14 @@ def _make_car(
     price_kzt: int,
     year: int = 2018,
     mileage_km: int = 100_000,
+    model: str = "Corolla",
+    description: str = "",
+    photo_urls: list[str] | None = None,
 ) -> CarListing:
     return CarListing(
         id=identifier,
         make="Toyota",
-        model="Corolla",
+        model=model,
         year=year,
         price_kzt=price_kzt,
         mileage_km=mileage_km,
@@ -315,6 +322,8 @@ def _make_car(
         fuel_type="petrol",
         city=city,
         source_url=f"https://example.com/{identifier}",
+        description=description,
+        photo_urls=photo_urls or [],
     )
 
 
@@ -398,3 +407,60 @@ def test_year_and_mileage_only_score_when_requested():
     assert components["mileage"].available is True
     assert components["year"].weight == 0.5
     assert components["mileage"].weight == 0.5
+
+
+def test_model_filter_returns_only_matching_model():
+    result = recommend_cars(
+        request=RecommendationRequest(
+            budget_max=8_000_000,
+            model_name="Camry",
+        ),
+        listings=[
+            _make_car(
+                "model-camry",
+                city="Astana",
+                price_kzt=6_000_000,
+                model="Camry",
+            ),
+            _make_car("model-corolla", city="Astana", price_kzt=5_000_000),
+        ],
+    )
+
+    assert result.total == 1
+    assert result.items[0].listing.model == "Camry"
+    assert "Модель соответствует фильтру." in result.items[0].reasons
+
+
+def test_description_analysis_flags_listing_claims_and_ignores_negation():
+    result = recommend_cars(
+        request=RecommendationRequest(budget_max=8_000_000),
+        listings=[
+            _make_car(
+                "description-risk",
+                city="Astana",
+                price_kzt=5_000_000,
+                description=(
+                    "После ДТП, требуется ремонт двигателя, без документов, "
+                    "работал в такси."
+                ),
+                photo_urls=["https://example.com/car-front.jpg"],
+            ),
+            _make_car(
+                "description-denial",
+                city="Almaty",
+                price_kzt=5_000_000,
+                description="Не был в ДТП, не битый.",
+            ),
+        ],
+    )
+
+    flagged = next(
+        item for item in result.items if item.listing.id == "description-risk"
+    )
+    denied = next(
+        item for item in result.items if item.listing.id == "description-denial"
+    )
+
+    assert len(flagged.description_flags) == 4
+    assert flagged.listing.photo_urls == ["https://example.com/car-front.jpg"]
+    assert denied.description_flags == []

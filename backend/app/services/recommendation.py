@@ -1,4 +1,5 @@
 from datetime import date
+import re
 from statistics import median
 
 from app.providers.mock_provider import DemoListingProvider
@@ -10,6 +11,54 @@ from app.schemas.listing import (
     RecommendationResponse,
     ScoreComponent,
 )
+
+
+_DESCRIPTION_FLAG_PATTERNS = (
+    (
+        ("после дтп", "после аварии", "был в дтп", "аварийный", "битый", "крашеный"),
+        "В описании есть упоминание ДТП или кузовного ремонта.",
+    ),
+    (
+        (
+            "требует ремонта",
+            "требуется ремонт",
+            "нужен ремонт",
+            "не работает",
+            "под замену",
+        ),
+        "В описании указана возможная неисправность или необходимость ремонта.",
+    ),
+    (
+        ("без документов", "нет документов", "документы утеряны", "без техпаспорта"),
+        "В описании упоминается отсутствие или потеря документов.",
+    ),
+    (
+        ("такси", "работал в такси", "использовался в такси"),
+        "В описании упоминается использование автомобиля в такси.",
+    ),
+)
+
+
+def _analyze_description(description: str) -> list[str]:
+    """Extract explicit text signals without inferring hidden vehicle facts."""
+
+    normalized = re.sub(r"\s+", " ", description.casefold())
+    flags = []
+
+    for phrases, message in _DESCRIPTION_FLAG_PATTERNS:
+        for phrase in phrases:
+            position = normalized.find(phrase)
+            if position < 0:
+                continue
+
+            context_before = normalized[max(0, position - 18):position]
+            if re.search(r"\bне\s+(?:был\w*\s+)?$", context_before):
+                continue
+
+            flags.append(message)
+            break
+
+    return flags
 
 
 def _clamp(value: float) -> float:
@@ -40,6 +89,12 @@ def _matches_filters(
     if (
         request.mileage_max is not None
         and car.mileage_km > request.mileage_max
+    ):
+        return False
+
+    if (
+        request.model_name is not None
+        and car.model.casefold() != request.model_name.casefold()
     ):
         return False
 
@@ -316,6 +371,9 @@ def _score_car(
             "Год выпуска не превышает максимального значения."
         )
 
+    if request.model_name is not None:
+        reasons.append("Модель соответствует фильтру.")
+
     if request.mileage_max is not None:
         reasons.append(
             "Пробег не превышает установленный максимум."
@@ -375,6 +433,7 @@ def _score_car(
         price_comparison=price_comparison,
         reasons=reasons,
         warnings=warnings,
+        description_flags=_analyze_description(car.description),
     )
 
 

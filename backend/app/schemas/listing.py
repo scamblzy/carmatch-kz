@@ -48,6 +48,7 @@ class CarListing(BaseModel):
     city: str
     source_url: str
     description: str = ""
+    photo_urls: list[str] = Field(default_factory=list, max_length=30)
     published_at: datetime | None = None
     last_seen_at: datetime | None = None
 
@@ -68,6 +69,7 @@ class RecommendationRequest(BaseModel):
     transmission: Transmission | None = None
     body_type: BodyType | None = None
     fuel_type: FuelType | None = None
+    model_name: str | None = Field(default=None, min_length=1, max_length=80)
 
     # These are preferences, not mandatory filters.
     preferred_make: str | None = Field(
@@ -139,6 +141,7 @@ class RecommendationItem(BaseModel):
     price_comparison: PriceComparison
     reasons: list[str]
     warnings: list[str]
+    description_flags: list[str] = Field(default_factory=list)
 
 
 class RecommendationResponse(BaseModel):

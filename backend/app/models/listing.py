@@ -3,11 +3,13 @@ from datetime import datetime
 from sqlalchemy import (
     BigInteger,
     DateTime,
+    JSON,
     Integer,
     Index,
     String,
     Text,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -104,6 +106,13 @@ class Listing(Base):
         Text,
         nullable=False,
         default="",
+    )
+
+    photo_urls: Mapped[list[str]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=list,
+        server_default=text("'[]'"),
     )
 
     published_at: Mapped[datetime | None] = mapped_column(
